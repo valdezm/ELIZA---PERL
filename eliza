@@ -1,0 +1,215 @@
+#!/usr/bin/perl -w
+use strict;
+
+## Mark Valdez
+## Eliza - P1
+
+
+## Initialization
+my @key_nouns;
+my @key_emotions;
+my @recent;
+my %noun_hist;
+
+
+## Setup pronouns assoc
+my %pronouns = (
+		"my" => "your",
+		"i" => "you",
+		"me" => "you",
+		"I" => "you",
+		"My" => "your",
+		"mine" => "yours",
+		"Mine" => "yours",
+		);
+
+
+## File Input nouns.txt and emotions.txt
+open(NOUNS, "< nouns.txt") or die("No nouns!");
+open(EMOTIONS, "< emotions.txt") or die("No emotions!");
+
+## Fill are lists with the nouns and emotions
+while (my $noun =  <NOUNS>)
+{
+    chomp($noun);
+    push(@key_nouns, $noun);
+}
+
+while (my $emotion =  <EMOTIONS>)
+{
+    chomp($emotion);
+    push(@key_emotions, $emotion);
+}
+print "Hi, my name is Eliza\. I'm a doctor\. What can I help with?\n";
+## Standard input here
+while (my $line = <STDIN>)
+{
+    my $reply;
+    chop($line);
+    my @words = split(" ", $line);
+    die("OK, see you later, and make it a great day.") if ($words[$#words] eq "stop" and @words == 1);
+    my $last_char = chop($words[$#words]);
+    $words[$#words] = $words[$#words] . $last_char if (!($last_char eq "?") && !($last_char eq ".") && !($last_char eq "!"));   
+## EC portion
+## PROBLEM what was said isn't a list so I cannot extract each word for pronoun chk
+## Resolved
+    foreach my $words (@words)
+    {
+	if(exists $noun_hist{$words} && !$reply)
+	{
+	    my @whatwassaid = split (" ", $noun_hist{$words});
+	    for(my $i=0; $i<@whatwassaid; $i++)
+	    {
+		my $something = "$whatwassaid[$i]";
+		if(exists $pronouns{$something})
+		{
+		    $whatwassaid[$i] =  $pronouns{"$something"};
+		}
+	    }
+	    delete $noun_hist{$words};
+	    unshift(@recent, undef);
+	    $reply = "Earlier you said @whatwassaid\.";
+	
+	}		       
+    }
+    
+## End EC portion 
+   if($last_char eq "?")
+    {
+	foreach my $word (@words) 
+	{
+	   foreach (@key_nouns)
+	   {
+		if($_ eq $word && !$reply)
+		{
+		    $reply =  "Why do you ask about your $_?";
+		    unshift(@recent, $_);
+		    $noun_hist {$word} = "@words";
+		}
+	   }
+	}
+    }
+    if($last_char eq "!" && !$reply)
+    {
+	foreach my $word (@words) 
+	{
+	   foreach (@key_nouns)
+	   {
+	       if($_ eq $word && !$reply)
+	       {
+		   $reply =  "You seem to feel strongly about $_\. Why is that?";
+		   unshift(@recent, $_);
+		   $noun_hist {$word} = "@words";
+	       }
+	   }
+	}
+    }
+
+    if($last_char eq "?" && !$reply)
+    {
+	foreach my $word (@words) 
+	{
+	   foreach (@key_emotions)
+	   { 
+	       if($_ eq $word && !$reply)
+	       {
+		   $reply =  "Why do you ask about feeling $_?";
+		   unshift(@recent, $_);
+		   $noun_hist {$word} = "@words";
+	       }
+	   }
+	}
+    }
+    if($last_char eq "!" && !$reply)
+    {
+	foreach my $word (@words) 
+	{
+	   foreach (@key_emotions)
+	   {
+	       if($_ eq $word && !$reply)
+	       {
+		   $reply =  "You seem to feel strongly about feeling $_\. Why is that?";
+		   unshift(@recent, $_);
+		   $noun_hist {$word} = "@words";
+	       }
+	   }
+	}
+    }
+    if($last_char eq "?" && !$reply)
+    {
+	$reply = "Thats an interesting question\. What do you think?";
+	unshift(@recent, undef)
+    }
+    if($last_char eq "!" && !$reply)
+    {
+	$reply = "You seem upset\. Why is that?";
+	unshift(@recent, undef)
+    }
+    if(!$reply)
+    {	
+	foreach my $word (@words) 
+	{
+	   foreach (@key_nouns)
+	   {
+	       if($_ eq $word && !$reply)
+	       {
+		   $reply =  "Tell me more about your $_\.";
+		   unshift(@recent, $_);
+		   $noun_hist {$word} = "@words";
+	       }
+	   }
+          foreach (@key_emotions)
+	   {
+	       if($_ eq $word && !$reply)
+	       {
+		   $reply =  "Tell me more about feeling $_\.";
+		   unshift(@recent, $_);
+		   $noun_hist {$word} = "@words";
+	       }
+	   }
+       }
+    }
+    if(!$reply)
+    {
+	foreach (@words) 
+	{
+	    $reply =  "You know we should all just say NO to drugs!" if($_ eq "drugs" && !$reply);
+	    unshift(@recent, undef);
+	}
+    }
+    if(!$reply)
+    {
+	my $found;
+        for (my $i = 0; $i <10 && !$found; $i++)
+	{
+	    $a = shift(@recent); 
+	    $found = $a if($a);
+	}
+	if($found)
+	{
+	    unshift(@recent, undef);
+	    foreach (@key_nouns)
+	    {
+		$reply = "Lets get back to the subject of $_\." if($_ eq $found && !$reply)
+	    }
+	    foreach (@key_emotions)
+	    {
+		$reply = "Lets get back to your feeling $_\." if($_ eq $found && !$reply)
+	    }
+	}
+    }
+    if(!$reply)
+    {
+	$reply = "Hello\." if($words[0] eq "hello" || $words[0] eq "hi");
+	unshift(@recent, undef);
+    }
+    if(!$reply)
+    {
+	$reply = "I see. Tell me more\.";
+	unshift(@recent, undef);
+    }
+    print $reply . "\n";
+}
+
+
+    

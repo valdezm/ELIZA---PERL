@@ -1,0 +1,7 @@
+mother
+father
+family
+dog
+cat
+sister
+pet
